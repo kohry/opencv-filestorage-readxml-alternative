@@ -11,7 +11,7 @@ GorakgarakXMLParser.parse(context.resources.openRawResource(R.raw.svm),"Training
 
 
 ## Others..
-sample training data xml for Support Vector Machine is in the same directory. This is a sub-project for [Automated Number Plate Recognition](https://github.com/kohry/gorakgarakANPR) which is in progress.
+Sample SVM training data in xml format Machine is in the same directory. This is a sub-project for [Gorakgarak Automated Number Plate Recognition](https://github.com/kohry/gorakgarakANPR) which is in progress.
 
 
 
