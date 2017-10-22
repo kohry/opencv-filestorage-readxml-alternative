@@ -2,85 +2,109 @@ package com.gorakgarak.anpr.parser
 
 import org.xmlpull.v1.XmlPullParser
 import android.util.Xml
+import org.opencv.core.CvType
+import org.opencv.core.Mat
 import org.xmlpull.v1.XmlPullParserException
 import java.io.IOException
 import java.io.InputStream
+import java.util.*
 
 /**
  * Created by kohry on 2017-10-22.
  */
-class GorakgarakXMLParser {
+object GorakgarakXMLParser {
 
     data class Entry(val title: String,val summary: String,val link: String)
 
     // We don't use namespaces
-    private val ns: String? = null
+    private val namespace: String? = null
 
     @Throws(XmlPullParserException::class, IOException::class)
-    fun parse(`in`: InputStream): List<*> {
+    fun parse(inputStream: InputStream, trainingDataTagName: String): Pair<Mat, Mat> {
         try {
             val parser = Xml.newPullParser()
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
-            parser.setInput(`in`, null)
+            parser.setInput(inputStream, null)
             parser.nextTag()
-            return readFeed(parser)
+            return Pair(readFeed(parser, trainingDataTagName), readFeed(parser, "classes"))
         } finally {
-            `in`.close()
+            inputStream.close()
         }
     }
 
     @Throws(XmlPullParserException::class, IOException::class)
-    private fun readFeed(parser: XmlPullParser): List<*> {
+    private fun readFeed(parser: XmlPullParser, tagName:String): Mat {
         val entries = mutableListOf<Entry>()
+        var mat = Mat()
 
-        parser.require(XmlPullParser.START_TAG, ns, "feed")
+        parser.require(XmlPullParser.START_TAG, namespace, "feed")
+
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) {
                 continue
             }
             val name = parser.name
             // Starts by looking for the entry tag
-            if (name == "entry") {
-                entries.add(readEntry(parser))
+            if (name == tagName) {
+                mat = readEntry(parser, tagName)
+                break
             } else {
                 skip(parser)
             }
         }
-        return entries
+
+        return mat
     }
 
     // Parses the contents of an entry. If it encounters a title, summary, or link tag, hands them off
     // to their respective "read" methods for processing. Otherwise, skips the tag.
     @Throws(XmlPullParserException::class, IOException::class)
-    private fun readEntry(parser: XmlPullParser): Entry {
-        parser.require(XmlPullParser.START_TAG, ns, "entry")
-        var title: String = ""
-        var summary: String = ""
-        var link: String = ""
+    private fun readEntry(parser: XmlPullParser, entryName: String): Mat {
+        parser.require(XmlPullParser.START_TAG, namespace, entryName)
+        var rows = 0
+        var cols = 0
+        var dt = ""
+        var dataString: MutableList<String> = mutableListOf()
+        var queue: Queue<String> = LinkedList<String>()
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) {
                 continue
             }
             val name = parser.name
-            if (name == "title") {
-                title = readTitle(parser)
-            } else if (name == "summary") {
-                summary = readSummary(parser)
-            } else if (name == "link") {
-                link = readLink(parser)
-            } else {
-                skip(parser)
+            when (name) {
+                "rows" -> rows = readNode(parser, "rows").toInt()
+                "cols" -> cols = readNode(parser, "cols").toInt()
+                "dt" -> dt = readNode(parser, "dt")
+                "data" ->  {
+                    dataString = readNode(parser, "data").split("\\s+").toMutableList()
+                    queue.addAll(dataString)
+                }
+                else -> skip(parser)
             }
         }
-        return Entry(title, summary, link)
+
+        var imageType = CvType.CV_32F
+        if (dt == "f") imageType = CvType.CV_32F else if(dt == "i") imageType = CvType.CV_8U
+
+        val mat = Mat(rows, cols, imageType)
+
+        (0 until rows).forEach { row ->
+            (0 until cols).forEach { col ->
+                if (dt == "f") mat.put(row, col, floatArrayOf(queue.poll().toFloat()))
+                else if (dt == "i") mat.put(row, col, intArrayOf(queue.poll().toInt()))
+            }
+        }
+
+        return mat
     }
+
 
     // Processes title tags in the feed.
     @Throws(IOException::class, XmlPullParserException::class)
-    private fun readTitle(parser: XmlPullParser): String {
-        parser.require(XmlPullParser.START_TAG, ns, "title")
+    private fun readNode(parser: XmlPullParser, name: String): String {
+        parser.require(XmlPullParser.START_TAG, namespace, name)
         val title = readText(parser)
-        parser.require(XmlPullParser.END_TAG, ns, "title")
+        parser.require(XmlPullParser.END_TAG, namespace, name)
         return title
     }
 
@@ -94,33 +118,6 @@ class GorakgarakXMLParser {
         }
         return result
     }
-
-    // Processes link tags in the feed.
-    @Throws(IOException::class, XmlPullParserException::class)
-    private fun readLink(parser: XmlPullParser): String {
-        var link = ""
-        parser.require(XmlPullParser.START_TAG, ns, "link")
-        val tag = parser.name
-        val relType = parser.getAttributeValue(null, "rel")
-        if (tag == "link") {
-            if (relType == "alternate") {
-                link = parser.getAttributeValue(null, "href")
-                parser.nextTag()
-            }
-        }
-        parser.require(XmlPullParser.END_TAG, ns, "link")
-        return link
-    }
-
-    // Processes summary tags in the feed.
-    @Throws(IOException::class, XmlPullParserException::class)
-    private fun readSummary(parser: XmlPullParser): String {
-        parser.require(XmlPullParser.START_TAG, ns, "summary")
-        val summary = readText(parser)
-        parser.require(XmlPullParser.END_TAG, ns, "summary")
-        return summary
-    }
-
 
 
     @Throws(XmlPullParserException::class, IOException::class)
