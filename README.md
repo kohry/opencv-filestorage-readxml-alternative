@@ -6,10 +6,12 @@ This simple Kotlin code from [Android tutorial](https://developer.android.com/tr
 
 call parse() method in this code, and you will get a nice decent Pair<Mat, Mat> object from it. (Training Data Mat & Classes Mat).
 
-## example)
+## example
 GorakgarakXMLParser.parse(context.resources.openRawResource(R.raw.svm),"TrainingData")
 
-target xml is in the same directory.
+## otehrs..
+sample training data xml for Support Vector Machine is in the same directory.
 
+## version
 - Kotlin 1.1.51
 - OpenCV 3
