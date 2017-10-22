@@ -1,22 +1,20 @@
 # Simple Alertanative Code for OpenCV FileStorage.
 
-You are reading masteringOpenCV book, and frustrated with the fact that [OpenCV3 Android SDK] has no FileStorage class in it?
+You are reading masteringOpenCV book, and frustrated with the fact that [OpenCV3 Android SDK] has no FileStorage class in it? This simple Kotlin code modified from [Android tutorial](https://developer.android.com/training/basics/network-ops/xml.html) can help you.
 
-This simple Kotlin code from [Android tutorial](https://developer.android.com/training/basics/network-ops/xml.html) can help you.
-
-call parse() method in this code, and you will get a nice decent Pair<Mat, Mat> object from it. (Training Data Mat & Classes Mat).
+Call parse() method in this code, and you will get a nice decent Pair<Mat, Mat> object from it. (Training Data Mat & Classes Mat).
 
 
-## example
+## Example
 GorakgarakXMLParser.parse(context.resources.openRawResource(R.raw.svm),"TrainingData")
 
 
 
-## otehrs..
+## Others..
 sample training data xml for Support Vector Machine is in the same directory. This is a sub-project for [Automated Number Plate Recognition](https://github.com/kohry/gorakgarakANPR) which is in progress.
 
 
 
-## version
+## Version
 - Kotlin 1.1.51
 - OpenCV 3
