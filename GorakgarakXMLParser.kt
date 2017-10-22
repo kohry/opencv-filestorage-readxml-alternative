@@ -15,7 +15,6 @@ import java.util.*
  */
 object GorakgarakXMLParser {
 
-    // We don't use namespaces
     private val namespace: String? = null
 
     @Throws(XmlPullParserException::class, IOException::class)
@@ -54,8 +53,6 @@ object GorakgarakXMLParser {
         return mat
     }
 
-    // Parses the contents of an entry. If it encounters a title, summary, or link tag, hands them off
-    // to their respective "read" methods for processing. Otherwise, skips the tag.
     @Throws(XmlPullParserException::class, IOException::class)
     private fun readEntry(parser: XmlPullParser, entryName: String): Mat {
         parser.require(XmlPullParser.START_TAG, namespace, entryName)
@@ -95,7 +92,6 @@ object GorakgarakXMLParser {
     }
 
 
-    // Processes title tags in the feed.
     @Throws(IOException::class, XmlPullParserException::class)
     private fun readNode(parser: XmlPullParser, name: String): String {
         parser.require(XmlPullParser.START_TAG, namespace, name)
@@ -104,7 +100,6 @@ object GorakgarakXMLParser {
         return title
     }
 
-    // For the tags title and summary, extracts their text values.
     @Throws(IOException::class, XmlPullParserException::class)
     private fun readText(parser: XmlPullParser): String {
         var result = ""
