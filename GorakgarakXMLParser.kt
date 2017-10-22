@@ -5,6 +5,7 @@ import android.util.Xml
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.xmlpull.v1.XmlPullParserException
+import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
 import java.util.*
@@ -13,8 +14,6 @@ import java.util.*
  * Created by kohry on 2017-10-22.
  */
 object GorakgarakXMLParser {
-
-    data class Entry(val title: String,val summary: String,val link: String)
 
     // We don't use namespaces
     private val namespace: String? = null
@@ -26,6 +25,7 @@ object GorakgarakXMLParser {
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
             parser.setInput(inputStream, null)
             parser.nextTag()
+            parser.require(XmlPullParser.START_TAG, namespace, "opencv_storage")
             return Pair(readFeed(parser, trainingDataTagName), readFeed(parser, "classes"))
         } finally {
             inputStream.close()
@@ -34,10 +34,8 @@ object GorakgarakXMLParser {
 
     @Throws(XmlPullParserException::class, IOException::class)
     private fun readFeed(parser: XmlPullParser, tagName:String): Mat {
-        val entries = mutableListOf<Entry>()
-        var mat = Mat()
 
-        parser.require(XmlPullParser.START_TAG, namespace, "feed")
+        var mat = Mat() //you have to initialize opencv first, before loading this.
 
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) {
@@ -64,8 +62,7 @@ object GorakgarakXMLParser {
         var rows = 0
         var cols = 0
         var dt = ""
-        var dataString: MutableList<String> = mutableListOf()
-        var queue: Queue<String> = LinkedList<String>()
+        var data = ""
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) {
                 continue
@@ -75,23 +72,22 @@ object GorakgarakXMLParser {
                 "rows" -> rows = readNode(parser, "rows").toInt()
                 "cols" -> cols = readNode(parser, "cols").toInt()
                 "dt" -> dt = readNode(parser, "dt")
-                "data" ->  {
-                    dataString = readNode(parser, "data").split("\\s+").toMutableList()
-                    queue.addAll(dataString)
-                }
+                "data" ->  { data = readNode(parser, "data") }
                 else -> skip(parser)
             }
         }
 
         var imageType = CvType.CV_32F
-        if (dt == "f") imageType = CvType.CV_32F else if(dt == "i") imageType = CvType.CV_8U
+        if (dt == "f") imageType = CvType.CV_32F else if(dt == "i") imageType = CvType.CV_32S
 
         val mat = Mat(rows, cols, imageType)
 
+        val st = StringTokenizer(data)
+
         (0 until rows).forEach { row ->
             (0 until cols).forEach { col ->
-                if (dt == "f") mat.put(row, col, floatArrayOf(queue.poll().toFloat()))
-                else if (dt == "i") mat.put(row, col, intArrayOf(queue.poll().toInt()))
+                if (dt == "f") mat.put(row, col, floatArrayOf(st.nextToken().toFloat()))
+                else if (dt == "i") mat.put(row, col, intArrayOf(st.nextToken().toInt()))
             }
         }
 
